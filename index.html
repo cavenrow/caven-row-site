@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caven Row</title>
+<script>
+  // Applied before first paint to avoid a flash of the wrong theme.
+  (function(){
+    try{
+      var t = localStorage.getItem('cavenRowTheme');
+      document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+    }catch(e){
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Archivo:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     THEME TOKENS
+     --ink / --paper are kept as the surface/on-surface pair used
+     throughout — their assigned colors flip between modes, the
+     names (and every var() reference below) do not.
+     ============================================================ */
+  :root{
+    --ink:#0A0A0A;
+    --ink2:#0E0D0C;
+    --paper:#F5F3EF;
+    --muted:#8C8580;
+    --gold:#C9A667;
+    --line: rgba(245,243,239,0.12);
+
+    --grad-hero: radial-gradient(120% 90% at 70% 10%, #141210 0%, #0A0A0A 55%);
+    --scrim: linear-gradient(180deg, rgba(10,10,10,0.35) 0%, rgba(10,10,10,0.15) 40%, rgba(10,10,10,0.85) 100%);
+    --beam: linear-gradient(to top, rgba(245,243,239,0.14), transparent 65%);
+    --grad-estate: linear-gradient(180deg,#0A0A0A,#100E0C);
+    --grad-auto: linear-gradient(180deg,#0A0A0A,#0C0F0E);
+    --grad-exp: linear-gradient(180deg,#0A0A0A,#100D10);
+    --grad-closing: radial-gradient(80% 60% at 50% 100%, #120F0B, #0A0A0A);
+    --menu-bg: rgba(8,7,6,0.98);
+
+    --veil: #050403;
+  }
+
+  [data-theme="light"]{
+    --ink:#F6F1E7;
+    --ink2:#EFE8D8;
+    --paper:#18140F;
+    --muted:#7A6F60;
+    --gold:#93672C;
+    --line: rgba(24,20,15,0.12);
+
+    --grad-hero: radial-gradient(120% 90% at 70% 10%, #FFFDF9 0%, #F6F1E7 55%);
+    --scrim: linear-gradient(180deg, rgba(246,241,231,0.08) 0%, rgba(246,241,231,0.22) 40%, rgba(246,241,231,0.94) 100%);
+    --beam: linear-gradient(to top, rgba(147,103,44,0.16), transparent 65%);
+    --grad-estate: linear-gradient(180deg,#F6F1E7,#F0E7CF);
+    --grad-auto: linear-gradient(180deg,#F6F1E7,#EBEEE4);
+    --grad-exp: linear-gradient(180deg,#F6F1E7,#F1E7EF);
+    --grad-closing: radial-gradient(80% 60% at 50% 100%, #F2E6C9, #F6F1E7);
+    --menu-bg: rgba(250,247,240,0.98);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%; background:var(--ink); color:var(--paper);}
+  body{
+    font-family:'Archivo', sans-serif; font-weight:400;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    transition: background-color .5s ease, color .5s ease;
+  }
+  ::selection{ background:var(--gold); color:#0A0A0A; }
+  h1,h2,h3,.serif{ font-family:'Fraunces', serif; font-weight:400; letter-spacing:-0.01em; }
+  a{ color:inherit; text-decoration:none; }
+  img{ display:block; max-width:100%; }
+  button{ font-family:inherit; background:none; border:none; color:inherit; cursor:pointer; }
+
+  a:focus-visible, button:focus-visible{ outline:1px solid var(--gold); outline-offset:3px; }
+
+  /* ================= THEME VEIL (shutter-style crossfade) ================= */
+  #themeVeil{
+    position:fixed; inset:0; z-index:900; background:var(--veil);
+    opacity:0; pointer-events:none; transition:opacity .28s ease;
+  }
+  html.theme-switching #themeVeil{ opacity:1; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001s !important; transition-duration:0.001s !important; }
+  }
+
+  /* ================= LOGO THEME SWAP =================
+     Each logo slot holds two images (the existing dark-mode
+     asset and the dedicated light-mode asset provided by the
+     client); only one is ever in the flow, so no layout jump. */
+  .logo-light{ display:none; }
+  [data-theme="light"] .logo-dark{ display:none; }
+  [data-theme="light"] .logo-light{ display:block; }
+  /* logo-symbol-light ha più "aria" interna del corrispondente logo-symbol:
+     a parità di larghezza CSS risulta percepito come più grande. Questa
+     variabile compensa lo scarto senza toccare le proporzioni del file. */
+  :root{ --symbol-light-scale: 0.85; }
+
+  /* ================= GATE ================= */
+  #gate{
+    position:fixed; inset:0; z-index:1000; background:var(--ink);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transition: opacity 1.4s cubic-bezier(.22,1,.36,1), transform 1.4s cubic-bezier(.22,1,.36,1), background-color .5s ease;
+  }
+  #gate.leaving{ opacity:0; transform:scale(1.15); pointer-events:none; }
+
+  .gate-mark{ position:relative; width:min(38vw,300px); }
+  .gate-mark img{
+    width:100%; height:auto; filter: brightness(0.15) saturate(0);
+    animation: settle 3.4s cubic-bezier(.22,1,.36,1) forwards;
+  }
+  @keyframes settle{ from{ opacity:0; transform:scale(0.92);} to{ opacity:1; transform:scale(1);} }
+
+  .sweep{
+    position:absolute; inset:0; overflow:hidden;
+    clip-path: inset(0 100% 0 0);
+    animation: reveal 2.6s 0.8s cubic-bezier(.65,0,.35,1) forwards;
+  }
+  .sweep img{ width:100%; height:auto; filter:none; }
+  @keyframes reveal{ to{ clip-path: inset(0 0% 0 0); } }
+
+  .gate-enter{
+    margin-top:44px; font-size:13px; color:var(--paper);
+    display:flex; align-items:center; gap:12px;
+    opacity:0; animation: fadein 1s 3.4s ease forwards;
+    transition: color .4s ease;
+  }
+  .gate-enter .ln{ width:30px; height:1px; background:var(--muted); transition:background .35s ease; }
+  .gate-enter:hover .ln{ background:var(--gold); }
+  @keyframes fadein{ to{ opacity:1; } }
+
+  /* ================= HEADER (minimal, not a standard navbar) ================= */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:60;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 26px 5vw; opacity:0; transition: opacity 1s ease;
+  }
+  header.show{ opacity:1; }
+  .header-controls{ display:flex; align-items:center; gap:30px; }
+  .corner-mark img{
+    height:34px; width:auto;
+    transition: filter .5s ease, opacity .5s ease;
+  }
+  .corner-mark .logo-dark{ filter:grayscale(1) brightness(1.7) contrast(0.9); opacity:0.85; }
+  .corner-mark .logo-light{ filter:drop-shadow(0 1px 2px rgba(24,20,15,0.16)); opacity:0.92; transform:scale(var(--symbol-light-scale, 0.85)); transform-origin:center; }
+  .index-trigger{ font-size:12px; letter-spacing:0.14em; color:var(--muted); display:flex; align-items:center; gap:10px; transition:color .3s ease; }
+  .index-trigger:hover{ color:var(--paper); }
+  .index-trigger .dot{ width:5px; height:5px; border-radius:50%; border:1px solid var(--muted); }
+
+  /* ================= THEME TOGGLE ================= */
+  .theme-toggle{
+    display:flex; align-items:center; gap:10px;
+    font-size:12px; letter-spacing:0.08em; color:var(--muted);
+    transition:color .3s ease;
+  }
+  .theme-toggle:hover{ color:var(--paper); }
+  .theme-toggle-track{
+    position:relative; width:34px; height:18px; border-radius:999px;
+    border:1px solid var(--line); transition:border-color .5s ease;
+  }
+  .theme-toggle-mark{
+    position:absolute; top:50%; left:2px; width:12px; height:12px; border-radius:50%;
+    transform:translateY(-50%); display:flex; align-items:center; justify-content:center;
+    background:var(--muted); color:var(--ink);
+    transition:left .45s cubic-bezier(.65,0,.35,1), background .4s ease, color .4s ease;
+  }
+  .theme-toggle[aria-pressed="true"] .theme-toggle-mark{ left:18px; background:var(--gold); }
+  @media (max-width:480px){ .theme-toggle-label{ display:none; } .header-controls{ gap:18px; } }
+
+  /* ================= FULLSCREEN INDEX (replaces standard nav links) ================= */
+  #menu{
+    position:fixed; inset:0; z-index:70; background:var(--menu-bg);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; visibility:hidden; transition:opacity .5s ease, visibility .5s ease, background-color .5s ease;
+  }
+  #menu.open{ opacity:1; visibility:visible; }
+  #menu ul{ list-style:none; text-align:center; }
+  #menu li{ margin:18px 0; }
+  #menu a{ font-family:'Fraunces',serif; font-size:clamp(1.8rem,5vw,3.2rem); color:var(--muted); transition:color .3s ease; }
+  #menu a:hover{ color:var(--paper); }
+  #menu-close{ position:absolute; top:26px; right:5vw; font-size:12px; letter-spacing:0.14em; color:var(--muted); }
+  #menu-close:hover{ color:var(--paper); }
+
+  /* ================= THRESHOLD / HERO ================= */
+  .threshold{
+    position:relative; height:100svh; display:flex; align-items:flex-end;
+    background: var(--grad-hero);
+    padding: 0 5vw 10vh;
+    overflow:hidden;
+  }
+  .threshold .bg-video{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; object-position:center;
+    z-index:0;
+  }
+  .threshold .bg-scrim{
+    position:absolute; inset:0; z-index:1;
+    background: var(--scrim);
+    transition:background .5s ease;
+  }
+  .threshold .beam{
+    position:absolute; top:0; bottom:0; width:min(9vw,120px);
+    background: var(--beam);
+    filter:blur(8px);
+    z-index:1;
+  }
+  .threshold .beam.l{ left:38%; } .threshold .beam.r{ left:58%; }
+  .threshold-copy{ position:relative; z-index:2; max-width:640px; }
+  .threshold-copy .eyebrow-less{ margin-bottom:20px; }
+  .threshold-copy .eyebrow-less img{ height:52px; width:auto; transition:filter .5s ease; }
+  .threshold-copy .eyebrow-less .logo-dark{ filter:none; }
+  .threshold-copy .eyebrow-less .logo-light{ filter:drop-shadow(0 1px 3px rgba(24,20,15,0.18)); }
+  .threshold-copy h1{ font-size:clamp(2.4rem,5.6vw,4.6rem); line-height:1.02; }
+  .threshold-copy p{ margin-top:22px; color:var(--muted); font-size:15px; line-height:1.7; max-width:40ch; }
+  .scroll-cue{ position:absolute; bottom:6vh; right:5vw; z-index:2; font-size:11px; letter-spacing:0.14em; color:var(--muted); writing-mode:vertical-rl; display:flex; gap:10px; align-items:center; }
+  .scroll-cue i{ width:1px; height:36px; background:var(--line); position:relative; overflow:hidden; }
+  .scroll-cue i::after{ content:''; position:absolute; left:0; top:-100%; width:100%; height:100%; background:var(--paper); animation:fall 2.6s ease-in-out infinite; }
+  @keyframes fall{ 0%{top:-100%;} 60%{top:100%;} 100%{top:100%;} }
+
+  /* ================= REVEAL PANELS (scroll-driven, replaces plain stacked sections) ================= */
+  .reveal-wrap{ position:relative; }
+  .reveal-panel{
+    min-height:100svh; display:flex; align-items:center; border-top:1px solid var(--line);
+    padding:14vh 5vw; opacity:0.35; transform: scale(0.96);
+    transition: opacity .6s linear, transform .6s linear;
+    will-change:transform,opacity;
+  }
+  .reveal-panel.in{ opacity:1; transform:scale(1); }
+
+  .world .num{ position:absolute; top:14vh; left:5vw; font-size:12px; color:var(--muted); letter-spacing:0.08em; }
+  .world-inner{ max-width:620px; }
+  .world h2{ font-size:clamp(2rem,4.6vw,3.8rem); line-height:1.03; }
+  .world p{ margin-top:18px; color:var(--muted); font-size:15px; line-height:1.7; max-width:44ch; }
+  .world .enter{ margin-top:32px; display:inline-flex; align-items:center; gap:10px; font-size:13px; }
+  .world .enter .ln{ width:26px; height:1px; background:var(--paper); transition:width .35s ease; }
+  .world .enter:hover .ln{ width:42px; }
+  .world{ transition:background .5s ease; }
+  .world.estate{ background:var(--grad-estate); justify-content:flex-start; }
+  .world.auto{ background:var(--grad-auto); justify-content:flex-end; text-align:right; }
+  .world.auto .world-inner{ margin-left:auto; }
+  .world.auto .enter{ flex-direction:row-reverse; }
+  .world.exp{ background:var(--grad-exp); justify-content:flex-start; }
+
+  .field{ position:absolute; right:6vw; top:50%; transform:translateY(-50%); width:min(26vw,340px); height:min(26vw,340px); border:1px solid var(--line); opacity:.5; }
+  .world.auto .field{ left:6vw; right:auto; }
+  @media (max-width:900px){ .field{ display:none; } }
+
+  /* ================= JOURNAL ================= */
+  .journal{ padding:16vh 5vw 10vh; }
+  .journal-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:8vh; flex-wrap:wrap; }
+  .journal-head h2{ font-size:clamp(2rem,4.4vw,3.2rem); max-width:12ch; }
+  .journal-head a{ font-size:13px; color:var(--muted); border-bottom:1px solid var(--line); padding-bottom:4px; }
+  .journal-head a:hover{ color:var(--paper); border-color:var(--paper); }
+  .bento{ display:grid; grid-template-columns:repeat(12,1fr); gap:1px; background:var(--line); }
+  .bento .card{ background:var(--ink); padding:34px 28px; min-height:210px; display:flex; flex-direction:column; justify-content:space-between; transition:background-color .5s ease; }
+  .bento .card h3{ font-size:1.25rem; max-width:16ch; }
+  .bento .card span{ font-size:12px; color:var(--muted); }
+  .b1{ grid-column:span 7; min-height:320px; } .b2{ grid-column:span 5; }
+  .b3{ grid-column:span 5; } .b4{ grid-column:span 7; }
+  @media (max-width:820px){ .b1,.b2,.b3,.b4{ grid-column:span 12; min-height:190px; } }
+
+  /* ================= CLOSING GATE (reprise) ================= */
+  .closing{
+    position:relative; min-height:100svh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; border-top:1px solid var(--line);
+    background: var(--grad-closing);
+    padding: 10vh 5vw;
+    transition:background .5s ease, border-color .5s ease;
+  }
+  .closing img{
+    height:auto; margin-bottom:36px;
+    transition:opacity .5s ease, filter .5s ease;
+  }
+  .closing .logo-dark{ width:min(15vw,200px); opacity:0.92; filter:none; }
+  .closing .logo-light{ width:min(15vw,200px); opacity:0.96; filter:drop-shadow(0 2px 14px rgba(24,20,15,0.14)); }
+  .closing h2{ font-size:clamp(1.9rem,4.6vw,3.2rem); max-width:16ch; margin-bottom:22px; }
+  .closing p{ color:var(--muted); max-width:42ch; margin-bottom:34px; font-size:15px; line-height:1.7; }
+  .closing .cta{ font-size:13px; display:inline-flex; align-items:center; gap:10px; border:1px solid var(--line); padding:14px 30px; border-radius:2px; transition:border-color .3s ease; }
+  .closing .cta:hover{ border-color:var(--gold); color:var(--gold); }
+
+  footer{ padding:6vh 5vw; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--line); font-size:11px; color:var(--muted); flex-wrap:wrap; gap:12px; transition:border-color .5s ease, color .5s ease; }
+  footer .foot-links{ display:flex; gap:26px; }
+  footer .foot-links a:hover{ color:var(--paper); }
+</style>
+</head>
+<body>
+
+  <div id="gate">
+    <div class="gate-mark" id="gateMark">
+      <img class="logo-dark" src="assets/logo-mark.png" alt="Caven Row">
+      <img class="logo-light" src="assets/logo-full-light.png" alt="Caven Row">
+      <div class="sweep">
+        <img class="logo-dark" src="assets/logo-mark.png" alt="">
+        <img class="logo-light" src="assets/logo-full-light.png" alt="">
+      </div>
+    </div>
+    <button class="gate-enter" id="enterBtn"><span class="ln"></span>Entra</button>
+  </div>
+
+  <div id="themeVeil"></div>
+
+  <header id="siteHeader">
+    <a class="corner-mark" href="#top">
+      <img class="logo-dark" src="assets/logo-symbol.png" alt="Caven Row">
+      <img class="logo-light" src="assets/logo-symbol-light.png" alt="Caven Row">
+    </a>
+    <div class="header-controls">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Passa alla modalità chiara">
+        <span class="theme-toggle-track">
+          <span class="theme-toggle-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="7" height="7"><path d="M12 3a9 9 0 1 0 9 9c0-.35-.02-.7-.05-1.04A7 7 0 0 1 12 3Z" fill="currentColor"/></svg>
+          </span>
+        </span>
+        <span class="theme-toggle-label" id="themeLabel">Scuro</span>
+      </button>
+      <button class="index-trigger" id="menuOpen"><span class="dot"></span>Indice</button>
+    </div>
+  </header>
+
+  <nav id="menu">
+    <button id="menu-close">Chiudi</button>
+    <ul>
+      <li><a href="#estate">Proprietà</a></li>
+      <li><a href="#auto">Automotive</a></li>
+      <li><a href="#exp">Esperienze</a></li>
+      <li><a href="#journal">Journal</a></li>
+      <li><a href="#access">Accesso</a></li>
+    </ul>
+  </nav>
+
+  <main id="top">
+    <section class="threshold">
+      <video class="bg-video" autoplay muted loop playsinline preload="auto" poster="assets/hero-poster.jpg">
+        <source src="https://cdn.luxhaven360.com/file/caven-row-videos/hero.mp4" type="video/mp4">
+      </video>
+      <div class="bg-scrim"></div>
+      <div class="beam l"></div><div class="beam r"></div>
+      <div class="threshold-copy">
+        <div class="eyebrow-less">
+          <img class="logo-dark" src="assets/logo-horizontal.png" alt="Caven Row">
+          <img class="logo-light" src="assets/logo-horizontal-light.png" alt="Caven Row">
+        </div>
+        <h1>Un indirizzo. Non un catalogo.</h1>
+        <p>Proprietà, automobili ed esperienze rare, riunite in un unico accesso privato.</p>
+      </div>
+      <div class="scroll-cue"><i></i>SCORRI</div>
+    </section>
+
+    <div class="reveal-wrap">
+      <section class="reveal-panel world estate" id="estate">
+        <span class="num">01 — Proprietà</span>
+        <div class="world-inner">
+          <h2>Ville, castelli e dimore che non compaiono in nessun listino pubblico.</h2>
+          <p>Planimetrie, archivio storico e sopralluoghi riservati — non semplici fotografie da annuncio.</p>
+          <a class="enter" href="#"><span class="ln"></span>Entra nel mondo Immobili</a>
+        </div>
+        <div class="field"></div>
+      </section>
+
+      <section class="reveal-panel world auto" id="auto">
+        <span class="num">02 — Automotive</span>
+        <div class="world-inner">
+          <h2>Supercar e hypercar selezionate, vissute prima di essere possedute.</h2>
+          <p>Test drive privati e itinerari su strada, accesso a collezioni che raramente lasciano il garage.</p>
+          <a class="enter" href="#"><span class="ln"></span>Entra nel mondo Supercar</a>
+        </div>
+        <div class="field"></div>
+      </section>
+
+      <section class="reveal-panel world exp" id="exp">
+        <span class="num">03 — Esperienze</span>
+        <div class="world-inner">
+          <h2>Soggiorni e itinerari costruiti attorno a un solo ospite alla volta.</h2>
+          <p>Concierge dedicato, accessi esclusivi, pacchetti che uniscono luogo, automobile e tempo.</p>
+          <a class="enter" href="#"><span class="ln"></span>Entra nel mondo Esperienze</a>
+        </div>
+        <div class="field"></div>
+      </section>
+    </div>
+
+    <section class="journal" id="journal">
+      <div class="journal-head">
+        <h2>Note dall'archivio.</h2>
+        <a href="#">Tutto il Journal</a>
+      </div>
+      <div class="bento">
+        <div class="card b1"><h3>Dentro Villa Serrasanta: un restauro durato sette anni</h3><span>Heritage — 6 min</span></div>
+        <div class="card b2"><h3>La geometria silenziosa delle hypercar da collezione</h3><span>Automotive — 4 min</span></div>
+        <div class="card b3"><h3>Come nasce un itinerario Caven Row</h3><span>Esperienze — 3 min</span></div>
+        <div class="card b4"><h3>Il Founder Program: cosa significa davvero accesso privato</h3><span>Membership — 5 min</span></div>
+      </div>
+    </section>
+
+    <section class="closing" id="access">
+      <img class="logo-dark" src="assets/logo-symbol.png" alt="Caven Row">
+      <img class="logo-light" src="assets/logo-symbol-light.png" alt="Caven Row">
+      <h2>L'accesso non si acquista. Si riceve un invito.</h2>
+      <p>Il Founder Program di Caven Row è aperto a un numero limitato di membri fondatori.</p>
+      <a class="cta" href="#">Richiedi una valutazione riservata</a>
+    </section>
+  </main>
+
+  <footer>
+    <span>Caven Row — già in trasformazione da Caven Row.</span>
+    <div class="foot-links"><a href="#">Instagram</a><a href="#">TikTok</a><a href="#">Privacy</a></div>
+  </footer>
+
+<script>
+  // ---- Gate sequence ----
+  const gate = document.getElementById('gate');
+  const header = document.getElementById('siteHeader');
+  function leaveGate(){
+    gate.classList.add('leaving');
+    header.classList.add('show');
+    document.body.style.overflow = 'auto';
+    setTimeout(()=> gate.style.display='none', 1500);
+  }
+  document.body.style.overflow = 'hidden';
+  const enterBtn = document.getElementById('enterBtn');
+  enterBtn.addEventListener('click', leaveGate);
+  // auto-open after the reveal settles, in case the user just scrolls
+  window.addEventListener('wheel', leaveGate, { once:true, passive:true });
+  window.addEventListener('touchmove', leaveGate, { once:true, passive:true });
+
+  // Space bar: enter the site directly
+  let spaceTriggered = false;
+  window.addEventListener('keydown', (e) => {
+    if (spaceTriggered || gate.classList.contains('leaving')) return;
+    if (e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      spaceTriggered = true;
+      leaveGate();
+    }
+  });
+
+  // ---- Theme toggle (Dark / Light) ----
+  const rootEl = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const themeLabel = document.getElementById('themeLabel');
+
+  function currentTheme(){ return rootEl.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; }
+  function reflectTheme(theme){
+    themeToggle.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+    themeToggle.setAttribute('aria-label', theme === 'light' ? 'Passa alla modalità scura' : 'Passa alla modalità chiara');
+    themeLabel.textContent = theme === 'light' ? 'Chiaro' : 'Scuro';
+  }
+  reflectTheme(currentTheme());
+
+  themeToggle.addEventListener('click', () => {
+    const next = currentTheme() === 'light' ? 'dark' : 'light';
+    rootEl.classList.add('theme-switching');
+    window.setTimeout(() => {
+      rootEl.setAttribute('data-theme', next);
+      try{ localStorage.setItem('cavenRowTheme', next); }catch(e){}
+      reflectTheme(next);
+      requestAnimationFrame(() => rootEl.classList.remove('theme-switching'));
+    }, 260);
+  });
+
+  // ---- Fullscreen index menu ----
+  const menu = document.getElementById('menu');
+  document.getElementById('menuOpen').addEventListener('click', ()=> menu.classList.add('open'));
+  document.getElementById('menu-close').addEventListener('click', ()=> menu.classList.remove('open'));
+  menu.querySelectorAll('a').forEach(a => a.addEventListener('click', ()=> menu.classList.remove('open')));
+
+  // ---- Scroll-driven reveal for world panels ----
+  const panels = document.querySelectorAll('.reveal-panel');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('in');
+      else if (e.boundingClientRect.top > 0) e.target.classList.remove('in');
+    });
+  }, { threshold: 0.4 });
+  panels.forEach(p => io.observe(p));
+</script>
+</body>
+</html>
