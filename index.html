@@ -222,21 +222,42 @@
   .scroll-cue i::after{ content:''; position:absolute; left:0; top:-100%; width:100%; height:100%; background:var(--paper); animation:fall 2.6s ease-in-out infinite; }
   @keyframes fall{ 0%{top:-100%;} 60%{top:100%;} 100%{top:100%;} }
 
-  /* ================= REVEAL PANELS (scroll-driven, replaces plain stacked sections) ================= */
+  /* ================= REVEAL PANELS (scroll-driven, replaces plain stacked sections) =================
+     The panel itself no longer moves as a block: each element inside rises into
+     place on its own timing (number, then headline, then copy, then CTA, then the
+     decorative frame), all on the same slow expo-out ease — a single unhurried
+     gesture rather than a uniform fade. */
   .reveal-wrap{ position:relative; }
   .reveal-panel{
     min-height:100svh; display:flex; align-items:center; border-top:1px solid var(--line);
-    padding:14vh 5vw; opacity:0.35; transform: scale(0.96);
-    transition: opacity .6s linear, transform .6s linear;
-    will-change:transform,opacity;
+    padding:14vh 5vw;
   }
-  .reveal-panel.in{ opacity:1; transform:scale(1); }
 
-  .world .num{ position:absolute; top:14vh; left:5vw; font-size:12px; color:var(--muted); letter-spacing:0.08em; }
+  .world .num{
+    position:absolute; top:14vh; left:5vw; font-size:12px; color:var(--muted); letter-spacing:0.08em;
+    opacity:0; transform:translateY(14px);
+    transition: opacity .9s cubic-bezier(.19,1,.22,1), transform .9s cubic-bezier(.19,1,.22,1);
+  }
   .world-inner{ max-width:620px; }
-  .world h2{ font-size:clamp(2rem,4.6vw,3.8rem); line-height:1.03; }
-  .world p{ margin-top:18px; color:var(--muted); font-size:15px; line-height:1.7; max-width:44ch; }
-  .world .enter{ margin-top:32px; display:inline-flex; align-items:center; gap:10px; font-size:13px; }
+  .world h2{
+    font-size:clamp(2rem,4.6vw,3.8rem); line-height:1.03;
+    opacity:0; transform:translateY(32px);
+    transition: opacity 1.15s cubic-bezier(.19,1,.22,1), transform 1.15s cubic-bezier(.19,1,.22,1);
+  }
+  .world p{
+    margin-top:18px; color:var(--muted); font-size:15px; line-height:1.7; max-width:44ch;
+    opacity:0; transform:translateY(22px);
+    transition: opacity 1s cubic-bezier(.19,1,.22,1), transform 1s cubic-bezier(.19,1,.22,1);
+  }
+  .world .enter{
+    margin-top:32px; display:inline-flex; align-items:center; gap:10px; font-size:13px;
+    opacity:0; transform:translateY(16px);
+    transition: opacity .9s cubic-bezier(.19,1,.22,1), transform .9s cubic-bezier(.19,1,.22,1);
+  }
+  .reveal-panel.in .num{ opacity:1; transform:translateY(0); transition-delay:.05s; }
+  .reveal-panel.in h2{ opacity:1; transform:translateY(0); transition-delay:.16s; }
+  .reveal-panel.in p{ opacity:1; transform:translateY(0); transition-delay:.3s; }
+  .reveal-panel.in .enter{ opacity:1; transform:translateY(0); transition-delay:.42s; }
   .world .enter .ln{ width:26px; height:1px; background:var(--paper); transition:width .35s ease; }
   .world .enter:hover .ln{ width:42px; }
   .world{ transition:background .5s ease; }
@@ -246,7 +267,13 @@
   .world.auto .enter{ flex-direction:row-reverse; }
   .world.exp{ background:var(--grad-exp); justify-content:flex-start; }
 
-  .field{ position:absolute; right:6vw; top:50%; transform:translateY(-50%); width:min(26vw,340px); height:min(26vw,340px); border:1px solid var(--line); opacity:.5; }
+  .field{
+    position:absolute; right:6vw; top:50%; width:min(26vw,340px); height:min(26vw,340px); border:1px solid var(--line);
+    opacity:0; transform:translateY(-50%) scale(0.9);
+    transition: opacity 1.3s cubic-bezier(.19,1,.22,1), transform 1.3s cubic-bezier(.19,1,.22,1);
+    transition-delay:.1s;
+  }
+  .reveal-panel.in .field{ opacity:.5; transform:translateY(-50%) scale(1); }
   .world.auto .field{ left:6vw; right:auto; }
   @media (max-width:900px){ .field{ display:none; } }
 
@@ -475,7 +502,7 @@
       if (e.isIntersecting) e.target.classList.add('in');
       else if (e.boundingClientRect.top > 0) e.target.classList.remove('in');
     });
-  }, { threshold: 0.4 });
+  }, { threshold: 0.25, rootMargin: '0px 0px -8% 0px' });
   panels.forEach(p => io.observe(p));
 </script>
 </body>
