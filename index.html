@@ -314,6 +314,7 @@
   footer .foot-links{ display:flex; gap:26px; }
   footer .foot-links a:hover{ color:var(--paper); }
 </style>
+<link rel="stylesheet" href="assets/caven-home-media.css">
 </head>
 <body>
 
@@ -362,15 +363,15 @@
 
   <main id="top">
     <section class="threshold">
-      <video class="bg-video" autoplay muted loop playsinline preload="auto" poster="assets/hero-poster.jpg">
+      <video class="bg-video" autoplay muted loop playsinline preload="metadata">
         <source src="https://cdn.cavenrow.com/file/caven-row-videos/hero.mp4" type="video/mp4">
       </video>
       <div class="bg-scrim"></div>
       <div class="beam l"></div><div class="beam r"></div>
       <div class="threshold-copy">
         <div class="eyebrow-less">
-          <img class="logo-dark" src="assets/logo-horizontal.png" alt="Caven Row">
-          <img class="logo-light" src="assets/logo-horizontal-light.png" alt="Caven Row">
+          <img class="logo-dark" src="assets/logo-horizontal.webp" alt="Caven Row">
+          <img class="logo-light" src="assets/logo-horizontal-light.webp" alt="Caven Row">
         </div>
         <h1>Un indirizzo. Non un catalogo.</h1>
         <p>Proprietà, automobili ed esperienze rare, riunite in un unico accesso privato.</p>
@@ -380,31 +381,37 @@
 
     <div class="reveal-wrap">
       <section class="reveal-panel world estate" id="estate">
+        <img class="cr-world-visual" src="assets/properties.png" alt="" loading="lazy" decoding="async" width="1672" height="941">
+        <div class="cr-world-scrim" aria-hidden="true"></div>
         <span class="num">01 — Proprietà</span>
         <div class="world-inner">
           <h2>Ville, castelli e dimore che non compaiono in nessun listino pubblico.</h2>
           <p>Planimetrie, archivio storico e sopralluoghi riservati — non semplici fotografie da annuncio.</p>
-          <a class="enter" href="#"><span class="ln"></span>Entra nel mondo Immobili</a>
+          <a class="enter" href="/properties/"><span class="ln"></span>Entra nel mondo Immobili</a>
         </div>
         <div class="field"></div>
       </section>
 
       <section class="reveal-panel world auto" id="auto">
+        <video class="cr-world-visual" muted loop playsinline preload="none" aria-hidden="true"><source src="https://cdn.cavenrow.com/file/caven-row-videos/automotive.mp4" type="video/mp4"></video>
+        <div class="cr-world-scrim" aria-hidden="true"></div>
         <span class="num">02 — Automotive</span>
         <div class="world-inner">
           <h2>Supercar e hypercar selezionate, vissute prima di essere possedute.</h2>
           <p>Test drive privati e itinerari su strada, accesso a collezioni che raramente lasciano il garage.</p>
-          <a class="enter" href="#"><span class="ln"></span>Entra nel mondo Supercar</a>
+          <a class="enter" href="/automotive/"><span class="ln"></span>Entra nel mondo Supercar</a>
         </div>
         <div class="field"></div>
       </section>
 
       <section class="reveal-panel world exp" id="exp">
+        <video class="cr-world-visual cr-cinemagraph" muted loop playsinline preload="none" aria-hidden="true"><source src="https://cdn.cavenrow.com/file/caven-row-videos/properties.mp4" type="video/mp4"></video>
+        <div class="cr-world-scrim" aria-hidden="true"></div>
         <span class="num">03 — Esperienze</span>
         <div class="world-inner">
           <h2>Soggiorni e itinerari costruiti attorno a un solo ospite alla volta.</h2>
           <p>Concierge dedicato, accessi esclusivi, pacchetti che uniscono luogo, automobile e tempo.</p>
-          <a class="enter" href="#"><span class="ln"></span>Entra nel mondo Esperienze</a>
+          <a class="enter" href="/experiences/"><span class="ln"></span>Entra nel mondo Esperienze</a>
         </div>
         <div class="field"></div>
       </section>
@@ -413,7 +420,7 @@
     <section class="journal" id="journal">
       <div class="journal-head">
         <h2>Note dall'archivio.</h2>
-        <a href="#">Tutto il Journal</a>
+        <a href="/the-project/showcase.html#sec-editorial">Tutto il Journal</a>
       </div>
       <div class="bento">
         <div class="card b1"><h3>Dentro Villa Serrasanta: un restauro durato sette anni</h3><span>Heritage — 6 min</span></div>
@@ -428,13 +435,13 @@
       <img class="logo-light" src="assets/logo-symbol-light.png" alt="Caven Row">
       <h2>L'accesso non si acquista. Si riceve un invito.</h2>
       <p>Il Founder Program di Caven Row è aperto a un numero limitato di membri fondatori.</p>
-      <a class="cta" href="#">Richiedi una valutazione riservata</a>
+      <a class="cta" href="/early-access/">Richiedi una valutazione riservata</a>
     </section>
   </main>
 
   <footer>
     <span>Caven Row — già in trasformazione da Caven Row.</span>
-    <div class="foot-links"><a href="#">Instagram</a><a href="#">TikTok</a><a href="#">Privacy</a></div>
+    <div class="foot-links"><a href="/contact/?channel=instagram">Instagram</a><a href="/contact/?channel=tiktok">TikTok</a><a href="/privacy-policy.html">Privacy</a></div>
   </footer>
 
 <script>
@@ -505,5 +512,6 @@
   }, { threshold: 0.25, rootMargin: '0px 0px -8% 0px' });
   panels.forEach(p => io.observe(p));
 </script>
+<script src="assets/caven-media.js" defer></script>
 </body>
 </html>
